@@ -11,26 +11,18 @@ import time
 import traceback
 import xmpp
 
-xmpp_user_from = 'someuser@jabber.host.com' # replace this
-xmpp_user_password = 'mypassword' # replace this
-xmpp_connect_interval = 0.5
-xmpp_user_to = 'myaccount@jabber.myhost.net' # replace this
-
-mqtt_server = 'vps001.vanheusden.com' # replace this
-mqtt_connect_interval = 0.5
-mqtt_topic = [ '#' ] # replace this
-mqtt_topic_qos = 0
-
-verbose = True # you might want to replace this
-
-xmpp_mqtt_topic_regexp_pattern = 'temp' # replace this
-xmpp_mqtt_payload_regexp_pattern = '.*' # replace this
+from mqtt_to_jabber_settings import *
 
 jid = xmpp.JID(xmpp_user_from)
 cnx = xmpp.Client(jid.getDomain(), debug=[])
 
-xmpp_mqtt_topic_regexp = re.compile(xmpp_mqtt_topic_regexp_pattern)
-xmpp_mqtt_payload_regexp = re.compile(xmpp_mqtt_payload_regexp_pattern)
+xmpp_mqtt_topic_regexps = []
+for pattern in xmpp_mqtt_topic_regexp_patterns:
+	xmpp_mqtt_topic_regexps.append(re.compile(pattern))
+
+xmpp_mqtt_payload_regexps = []
+for pattern in xmpp_mqtt_payload_regexp_patterns:
+	xmpp_mqtt_payload_regexps.append(re.compile(pattern))
 
 mqtt_client = mosquitto.Mosquitto('mqtt-to-jabber_' + str(os.getpid()) + os.uname()[1])
 mqtt_connected = False
@@ -44,7 +36,19 @@ def on_message(mosq, obj, msg):
 	if verbose:
 		print("Message received on topic " + msg.topic + " with QoS " + str(msg.qos) + " and payload " + msg.payload)
 
-	if re.match(xmpp_mqtt_payload_regexp, msg.payload) and re.match(xmpp_mqtt_topic_regexp, msg.topic):
+	payload_match = topic_match = False
+
+	for cur_re in xmpp_mqtt_topic_regexps:
+		if re.match(cur_re, msg.topic):
+			topic_match = True
+			break
+
+	for cur_re in xmpp_mqtt_payload_regexps:
+		if re.match(cur_re, msg.payload):
+			payload_match = True
+			break
+
+	if topic_match and payload_match:
 		if verbose:
 			print 'Sending %s to XMPP (Jabber)' % msg.payload
 
@@ -138,6 +142,7 @@ while True:
 	if cnx.isConnected():
 		connected_cnt += 1
 
-		statstr = 'Connected %d' % connected_cnt
-		pres.setStatus(statstr)
-		cnx.send(pres)
+		if xmpp_heartbeat:
+			statstr = 'Connected %d' % connected_cnt
+			pres.setStatus(statstr)
+			cnx.send(pres)
