@@ -114,6 +114,7 @@ while True:
 				if verbose:
 					print 'Connected to XMPP (Jabber)'
 
+				if send_connected_announcement:
 					cnx.send(xmpp.Message(xmpp_user_to, 'Connected!'))
 			else:
 				time.sleep(xmpp_connect_interval)

@@ -19,6 +19,10 @@ mqtt_topic_qos = 0
 
 verbose = True
 
+# sends a message through xmpp/jabber when it is connected
+# normally your xmpp/jabber client already notifies you of this
+send_connected_announcement = True
+
 # it works like this:
 # - IF one of the topics matches
 # - AND
