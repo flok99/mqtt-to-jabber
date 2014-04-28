@@ -1,34 +1,38 @@
 #!/usr/bin/python
 
+# (C) 2014 by folkert van heusden
+# mail@vanheusden.com
+
 import mosquitto
+import os
 import re
 import sys
 import time
 import traceback
 import xmpp
 
-xmpp_user = 'domotica@jabber.vanheusden.com'
-xmpp_password = 'jochie'
+xmpp_user_from = 'someuser@jabber.host.com' # replace this
+xmpp_user_password = 'mypassword' # replace this
 xmpp_connect_interval = 0.5
-xmpp_target = 'folkert@jabber.vanheusden.com'
+xmpp_user_to = 'myaccount@jabber.myhost.net' # replace this
 
-mqtt_server = 'mauer'
+mqtt_server = 'vps001.vanheusden.com' # replace this
 mqtt_connect_interval = 0.5
-mqtt_topic = [ '#' ]
+mqtt_topic = [ '#' ] # replace this
 mqtt_topic_qos = 0
 
-verbose = True
+verbose = True # you might want to replace this
 
-xmpp_mqtt_topic_regexp_pattern = 'temp'
-xmpp_mqtt_payload_regexp_pattern = '.*'
+xmpp_mqtt_topic_regexp_pattern = 'temp' # replace this
+xmpp_mqtt_payload_regexp_pattern = '.*' # replace this
 
-jid = xmpp.JID(xmpp_user)
+jid = xmpp.JID(xmpp_user_from)
 cnx = xmpp.Client(jid.getDomain(), debug=[])
 
 xmpp_mqtt_topic_regexp = re.compile(xmpp_mqtt_topic_regexp_pattern)
 xmpp_mqtt_payload_regexp = re.compile(xmpp_mqtt_payload_regexp_pattern)
 
-mqtt_client = mosquitto.Mosquitto('mqtt-to-jabber')
+mqtt_client = mosquitto.Mosquitto('mqtt-to-jabber_' + str(os.getpid()) + os.uname()[1])
 mqtt_connected = False
 
 # mqtt
@@ -44,7 +48,7 @@ def on_message(mosq, obj, msg):
 		if verbose:
 			print 'Sending %s to XMPP (Jabber)' % msg.payload
 
-		cnx.send(xmpp.Message(xmpp_target, msg.topic + ' ' + msg.payload))
+		cnx.send(xmpp.Message(xmpp_user_to, msg.topic + ' ' + msg.payload))
 
 	else:
 		if verbose:
@@ -96,7 +100,7 @@ while True:
 
 		try:
 			cnx.connect()
-			cnx.auth(jid.getNode(), xmpp_password, 'mqtt-to-jabber')
+			cnx.auth(jid.getNode(), xmpp_user_password, 'mqtt-to-jabber')
 
 			cnx.sendInitPresence()
 
@@ -106,7 +110,7 @@ while True:
 				if verbose:
 					print 'Connected to XMPP (Jabber)'
 
-					cnx.send(xmpp.Message(xmpp_target, 'Connected!'))
+					cnx.send(xmpp.Message(xmpp_user_to, 'Connected!'))
 			else:
 				time.sleep(xmpp_connect_interval)
 
